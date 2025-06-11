@@ -2,8 +2,9 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from typing import List
+from redis_app import RedisService
 
-from redis import RedisService
 # Change these from relative imports to absolute imports
 from database import get_db, engine
 from models import Base
@@ -17,7 +18,7 @@ from crud import (
     create_user_task
 )
 from tasks import sample_task
-from redis import RedisService
+
 
 Base.metadata.create_all(bind=engine)   
 
@@ -77,7 +78,7 @@ def get_tasks(
 ):
     # Try to get tasks from cache
     cache_key = f"user_tasks:{current_user.id}"
-    cached_tasks = RedisService.get_list(cache_key)
+    cached_tasks = RedisService.get_key(cache_key)
     if cached_tasks:
         return cached_tasks
 
@@ -85,7 +86,7 @@ def get_tasks(
     tasks = get_user_tasks(db=db, user_id=current_user.id)
     
     # Cache the tasks for 5 minutes
-    RedisService.set_list(cache_key, [task.__dict__ for task in tasks])
+    RedisService.set_key(cache_key, [task.__dict__ for task in tasks])
     
     return tasks
 
