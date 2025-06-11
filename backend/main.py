@@ -2,9 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from typing import List, Optional
 
+from redis import RedisService
 # Change these from relative imports to absolute imports
 from database import get_db, engine
 from models import Base
@@ -18,6 +17,7 @@ from crud import (
     create_user_task
 )
 from tasks import sample_task
+from redis import RedisService
 
 Base.metadata.create_all(bind=engine)   
 
@@ -63,14 +63,31 @@ def create_task(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return create_user_task(db=db, task=task, user_id=current_user.id)
+    new_task = create_user_task(db=db, task=task, user_id=current_user.id)
+    
+    # Invalidate the cached task list
+    RedisService.delete_key(f"user_tasks:{current_user.id}")
+    
+    return new_task
 
 @app.get("/api/tasks", response_model=List[Task])
 def get_tasks(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_user_tasks(db=db, user_id=current_user.id)
+    # Try to get tasks from cache
+    cache_key = f"user_tasks:{current_user.id}"
+    cached_tasks = RedisService.get_list(cache_key)
+    if cached_tasks:
+        return cached_tasks
+
+    # If not in cache, get from database
+    tasks = get_user_tasks(db=db, user_id=current_user.id)
+    
+    # Cache the tasks for 5 minutes
+    RedisService.set_list(cache_key, [task.__dict__ for task in tasks])
+    
+    return tasks
 
 @app.get("/api/test-celery/{x}/{y}")
 async def test_celery(x: int, y: int):
