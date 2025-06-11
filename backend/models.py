@@ -14,6 +14,13 @@ class User(Base):
 
     tasks = relationship("Task", back_populates="owner")
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "is_active": self.is_active
+        }
+
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -24,4 +31,14 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
 
-    owner = relationship("User", back_populates="tasks") 
+    owner = relationship("User", back_populates="tasks")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "completed": self.completed,
+            "created_at": self.created_at.isoformat(),
+            "user_id": self.user_id
+        } 

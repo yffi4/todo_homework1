@@ -25,6 +25,7 @@ class RedisService:
             redis_client.set(key, serialized_value)
             if expire_seconds:
                 redis_client.expire(key, expire_seconds)
+            print(f"Redis key set: {key}")
             return True
         except Exception as e:
             print(f"Error setting Redis key: {e}")
@@ -41,6 +42,7 @@ class RedisService:
             value = redis_client.get(key)
             if value:
                 return json.loads(value)
+            print(f"Redis key not found: {key}")
             return None
         except Exception as e:
             print(f"Error getting Redis key: {e}")
@@ -54,7 +56,9 @@ class RedisService:
         :return: True if successful
         """
         try:
+            print(f"Redis key deleted: {key}")
             return bool(redis_client.delete(key))
+        
         except Exception as e:
             print(f"Error deleting Redis key: {e}")
             return False
@@ -73,6 +77,7 @@ class RedisService:
             if values:
                 pipeline.rpush(key, *[json.dumps(v) for v in values])
             pipeline.execute()
+            print(f"Redis list set: {key}")
             return True
         except Exception as e:
             print(f"Error setting Redis list: {e}")
@@ -87,6 +92,7 @@ class RedisService:
         """
         try:
             values = redis_client.lrange(key, 0, -1)
+            print(values)
             return [json.loads(v) for v in values]
         except Exception as e:
             print(f"Error getting Redis list: {e}")
