@@ -4,7 +4,8 @@ FROM node:22 AS build
 WORKDIR /app
 
 ENV NODE_OPTIONS=--max_old_space_size=2048
-RUN npm config set registry https://registry.npmjs.org/
+RUN npm config set registry https://registry.npmmirror.com
+
 
 RUN npm cache clean --force
 # Устанавливаем зависимости
