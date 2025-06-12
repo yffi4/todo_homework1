@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Change these from relative imports to absolute imports
 from database import get_db, engine
 from models import Base
+
 from schemas import UserCreate, User, Token, TaskCreate, Task
 from crud import (
     create_user,
