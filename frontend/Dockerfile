@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Копируем package.json и package-lock.json
 COPY package*.json ./
-
+RUN npm install
 # Копируем весь проект
 COPY . .
 
@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 3000
 
 # Запускаем интерактивную оболочку, чтобы вручную вводить команды
-CMD ["sh"]
+CMD ["nginx", "-g", "daemon off;"]
