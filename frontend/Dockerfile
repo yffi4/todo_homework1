@@ -1,19 +1,23 @@
-FROM node:22 AS dev-stage
+# 1. Этап сборки
+FROM node:22 AS build-stage
 
-# Установим nginx
-RUN apt update && apt install -y nginx && apt clean
-
-# Установка рабочей директории
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
 COPY package*.json ./
 RUN npm install
-# Копируем весь проект
-COPY . .
 
-# Открываем порт nginx (если ты решишь его запускать)
+COPY . .
+RUN npm run build
+
+
+# 2. Этап продакшн - nginx
+FROM nginx:stable-alpine AS prod-stage
+
+# Копируем сборку React/Vite/Next/etc в папку, которую nginx обслуживает по умолчанию
+COPY --from=build-stage /app/build /usr/share/nginx/html
+
+# Открываем порт
 EXPOSE 3000
 
-# Запускаем интерактивную оболочку, чтобы вручную вводить команды
+# Стартуем nginx с дефолтным конфигом
 CMD ["nginx", "-g", "daemon off;"]
