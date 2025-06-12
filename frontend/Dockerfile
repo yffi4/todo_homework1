@@ -1,21 +1,19 @@
-# Stage 1: Build
-FROM node:22 AS build
+FROM node:22 AS dev-stage
 
+# Установим nginx
+RUN apt update && apt install -y nginx && apt clean
+
+# Установка рабочей директории
 WORKDIR /app
 
+# Копируем package.json и package-lock.json
 COPY package*.json ./
-RUN npm install
 
+# Копируем весь проект
 COPY . .
 
-RUN npm run build
-
-# Stage 2: Serve with Nginx
-FROM nginx:stable-alpine
-
-# Копируем build-папку в nginx директорию
-COPY --from=build /app/build /usr/share/nginx/html
-
+# Открываем порт nginx (если ты решишь его запускать)
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+# Запускаем интерактивную оболочку, чтобы вручную вводить команды
+CMD ["sh"]
