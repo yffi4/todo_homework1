@@ -6,6 +6,7 @@ from typing import List, Optional
 from redis_app import RedisService
 from datetime import datetime, timedelta
 import os
+import models
 from dotenv import load_dotenv
 # Change these from relative imports to absolute imports
 from database import get_db, engine
