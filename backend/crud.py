@@ -84,4 +84,17 @@ def create_user_task(db: Session, task: schemas.TaskCreate, user_id: int):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
-    return db_task 
+    return db_task
+
+def delete_task(db: Session, task_id: int, user_id: int):
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.user_id == user_id
+    ).first()
+    
+    if task is None:
+        return None
+        
+    db.delete(task)
+    db.commit()
+    return task 

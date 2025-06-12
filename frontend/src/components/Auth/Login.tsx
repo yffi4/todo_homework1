@@ -19,7 +19,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       formData.append("password", password);
 
       const response = await axios.post(
-        "http://localhost:8000/api/token",
+        process.env.REACT_APP_API_URL + "/api/token",
         formData
       );
       onLogin(response.data.access_token);

@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from redis_app import RedisService
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 # Change these from relative imports to absolute imports
 from database import get_db, engine
 from models import Base
@@ -16,19 +17,22 @@ from crud import (
     get_current_user,
     create_access_token,
     get_user_tasks,
-    create_user_task
+    create_user_task,
+    delete_task
 )
 from tasks import sample_task
+from assistant.task_analyzer import TaskAnalyzer
 
 
 Base.metadata.create_all(bind=engine)   
 
 app = FastAPI(title="Todo App API")
 
+load_dotenv()
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React frontend URL
+    allow_origins=[os.getenv("FRONTEND_URL")],  # React frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,6 +94,24 @@ def get_tasks(
     RedisService.set_key(cache_key, [task.to_dict() for task in tasks])
     
     return tasks
+
+@app.delete("/api/tasks/{task_id}")
+def remove_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    task = delete_task(db=db, task_id=task_id, user_id=current_user.id)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    # Invalidate the cached task list
+    RedisService.delete_key(f"user_tasks:{current_user.id}")
+    
+    return {"message": "Task successfully deleted"}
 
 @app.get("/api/test-celery/{x}/{y}")
 async def test_celery(x: int, y: int):
@@ -171,6 +193,48 @@ async def get_redis_value(key: str):
         "key": key,
         "value": value
     }
+
+# Task Analysis Endpoints
+@app.get("/api/tasks/analyze")
+async def analyze_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Analyze all tasks for the current user and provide recommendations
+    """
+    tasks = get_user_tasks(db=db, user_id=current_user.id)
+    analyzer = TaskAnalyzer()
+    analysis = analyzer.batch_analyze_tasks(tasks)
+    return analysis
+
+@app.get("/api/tasks/{task_id}/analyze")
+async def analyze_single_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Analyze a specific task and provide detailed recommendations
+    """
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.user_id == current_user.id
+    ).first()
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    analyzer = TaskAnalyzer()
+    analysis = analyzer.analyze_task(task)
+    return analysis
+
+@app.get("/api/tasks/workload")
+async def get_workload_analysis(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Get workload analysis and task management recommendations
+    """
+    tasks = get_user_tasks(db=db, user_id=current_user.id)
+    analyzer = TaskAnalyzer()
+    workload_analysis = analyzer.get_workload_analysis(tasks)
+    return workload_analysis
 
 if __name__ == "__main__":
     import uvicorn
