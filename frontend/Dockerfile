@@ -17,10 +17,6 @@ COPY . .
 RUN npm run build
 
 # === Стадия 2: Nginx для прод-сервера ===
-FROM nginx:stable-alpine AS prod
-
-# Копируем билд в директорию, обслуживаемую Nginx
-COPY --from=build /app/build /usr/share/nginx/html
 
 # Копируем дефолтную конфигурацию nginx (если хочешь настроить — дальше)
 # Если не указывать свой, nginx сам отработает с index.html
@@ -29,4 +25,4 @@ COPY --from=build /app/build /usr/share/nginx/html
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "run", "start"]
