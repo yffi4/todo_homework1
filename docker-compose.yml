@@ -11,13 +11,19 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8000
     depends_on:
       - backend
+    networks:
+      - app-network
 
   db:
     image: postgres:17
@@ -29,6 +35,8 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
   redis:
     image: redis:alpine
@@ -36,6 +44,8 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
 
   celery_worker:
     build: ./backend
@@ -50,8 +60,13 @@ services:
       - POSTGRES_HOST=db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      
+    networks:
+      - app-network
 
 volumes:
   redis_data:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
