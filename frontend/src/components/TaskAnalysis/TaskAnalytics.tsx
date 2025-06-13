@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Card,
@@ -55,7 +55,7 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(
@@ -72,11 +72,11 @@ const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchAnalysis();
-  }, [token]);
+  }, [token, fetchAnalysis]);
 
   if (loading) {
     return (

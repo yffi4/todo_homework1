@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   List,
   ListItem,
@@ -57,20 +57,23 @@ const TaskList: React.FC<TaskListProps> = ({ token }) => {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [tabValue, setTabValue] = useState(0);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      const response = await axios.get(process.env.REACT_APP_API_URL + "/api/tasks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        process.env.REACT_APP_API_URL + "/api/tasks",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setTasks(response.data);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchTasks();
-  }, [token]);
+  }, [token, fetchTasks]);
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +99,7 @@ const TaskList: React.FC<TaskListProps> = ({ token }) => {
   const handleToggleComplete = async (taskId: number, completed: boolean) => {
     try {
       await axios.patch(
-        process.env.REACT_APP_API_URL + "/api/tasks/${taskId}",
+        `${process.env.REACT_APP_API_URL}/api/tasks/${taskId}`,
         { completed: !completed },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -110,9 +113,12 @@ const TaskList: React.FC<TaskListProps> = ({ token }) => {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      await axios.delete(process.env.REACT_APP_API_URL + "/api/tasks/${taskId}", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `${process.env.REACT_APP_API_URL}/api/tasks/${taskId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchTasks();
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -186,17 +192,15 @@ const TaskList: React.FC<TaskListProps> = ({ token }) => {
                     primary={task.title}
                     secondary={task.description}
                   />
-                
-                <IconButton
-                  edge="end"
-                  aria-label="delete"
-                  onClick={() => handleDeleteTask(task.id)}
-                  sx={{ ml: "auto" }}
-                >
-                  <DeleteIcon />
-                </IconButton>
 
-                  
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleDeleteTask(task.id)}
+                    sx={{ ml: "auto" }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
                 </ListItem>
               ))}
             </List>
